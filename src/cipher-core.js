@@ -752,7 +752,7 @@ CryptoJS.lib.Cipher || (function (undefined) {
          */
         execute: function (password, keySize, ivSize, salt) {
             // Generate random salt
-            if ( ! salt) {
+            if (!salt) {
                 salt = WordArray.random(64/8);
             }
 
@@ -769,7 +769,7 @@ CryptoJS.lib.Cipher || (function (undefined) {
     };
 
     /**
-     * A cipher wrapper that derives the key from a password,
+     * A serializable cipher wrapper that derives the key from a password,
      * and returns ciphertext as a serializable cipher params object.
      */
     var PasswordBasedCipher = C_lib.PasswordBasedCipher = SerializableCipher.extend({

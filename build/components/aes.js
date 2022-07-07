@@ -1,9 +1,9 @@
-/**
- * CryptoJS v3.0 beta 1
- * code.google.com/p/crypto-js
- * (c) 2009-2012 by Jeff Mott. All rights reserved.
- * code.google.com/p/crypto-js/wiki/License
- */
+/*
+CryptoJS v3.0
+code.google.com/p/crypto-js
+(c) 2009-2012 by Jeff Mott. All rights reserved.
+code.google.com/p/crypto-js/wiki/License
+*/
 (function () {
     // Shortcuts
     var C = CryptoJS;
@@ -65,7 +65,7 @@
             INV_SUB_MIX_3[sx] = t;
 
             // Compute next counter
-            if ( ! x) {
+            if (!x) {
                 x = xi = 1;
             } else {
                 x = x2 ^ d[d[d[x8 ^ x2]]];
@@ -101,7 +101,7 @@
                 } else {
                     var t = keySchedule[ksRow - 1];
 
-                    if ( ! (ksRow % keySize)) {
+                    if (!(ksRow % keySize)) {
                         // Rot word
                         t = (t << 8) | (t >>> 24);
 

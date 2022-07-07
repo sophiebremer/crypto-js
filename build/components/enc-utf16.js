@@ -1,9 +1,9 @@
-/**
- * CryptoJS v3.0 beta 1
- * code.google.com/p/crypto-js
- * (c) 2009-2012 by Jeff Mott. All rights reserved.
- * code.google.com/p/crypto-js/wiki/License
- */
+/*
+CryptoJS v3.0
+code.google.com/p/crypto-js
+(c) 2009-2012 by Jeff Mott. All rights reserved.
+code.google.com/p/crypto-js/wiki/License
+*/
 (function () {
     // Shortcuts
     var C = CryptoJS;
@@ -63,7 +63,7 @@
             // Convert
             var words = [];
             for (var i = 0; i < utf16StrLength; i++) {
-                words[(i * 2) >>> 2] |= utf16Str.charCodeAt(i) << (16 - (i % 2) * 16);
+                words[i >>> 1] |= utf16Str.charCodeAt(i) << (16 - (i % 2) * 16);
             }
 
             return WordArray.create(words, utf16StrLength * 2);

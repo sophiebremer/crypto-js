@@ -1,9 +1,9 @@
-/**
- * CryptoJS v3.0 beta 1
- * code.google.com/p/crypto-js
- * (c) 2009-2012 by Jeff Mott. All rights reserved.
- * code.google.com/p/crypto-js/wiki/License
- */
+/*
+CryptoJS v3.0
+code.google.com/p/crypto-js
+(c) 2009-2012 by Jeff Mott. All rights reserved.
+code.google.com/p/crypto-js/wiki/License
+*/
 CryptoJS.lib.Cipher||function(r){var f=CryptoJS,e=f.lib,i=e.Base,j=e.WordArray,o=e.BufferedBlockAlgorithm,p=f.enc.Base64,s=f.algo.EvpKDF,l=e.Cipher=o.extend({cfg:i.extend(),createEncryptor:function(a,b){return this.create(this._ENC_XFORM_MODE,a,b)},createDecryptor:function(a,b){return this.create(this._DEC_XFORM_MODE,a,b)},init:function(a,b,c){this.cfg=this.cfg.extend(c);this._xformMode=a;this._key=b;this.reset()},reset:function(){o.reset.call(this);this._doReset()},process:function(a){this._append(a);
 return this._process()},finalize:function(a){a&&this._append(a);return this._doFinalize()},keySize:4,ivSize:4,_ENC_XFORM_MODE:1,_DEC_XFORM_MODE:2,_createHelper:function(){return function(a){return{encrypt:function(b,c,d){return("string"==typeof c?q:g).encrypt(a,b,c,d)},decrypt:function(b,c,d){return("string"==typeof c?q:g).decrypt(a,b,c,d)}}}}()});e.StreamCipher=l.extend({_doFinalize:function(){return this._process(!0)},blockSize:1});var k=f.mode={},t=e.BlockCipherMode=i.extend({createEncryptor:function(a,
 b){return this.Encryptor.create(a,b)},createDecryptor:function(a,b){return this.Decryptor.create(a,b)},init:function(a,b){this._cipher=a;this._iv=b}}),k=k.CBC=function(){function a(a,b,m){var h=this._iv;h?this._iv=r:h=this._prevBlock;for(var e=0;e<m;e++)a[b+e]^=h[e]}var b=t.extend();b.Encryptor=b.extend({processBlock:function(b,d){var m=this._cipher,e=m.blockSize;a.call(this,b,d,e);m.encryptBlock(b,d);this._prevBlock=b.slice(d,d+e)}});b.Decryptor=b.extend({processBlock:function(b,d){var e=this._cipher,
