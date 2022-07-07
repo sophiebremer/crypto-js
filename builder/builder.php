@@ -1,7 +1,7 @@
 <?php
 
-$copyrightInfo = '/*!
- * Crypto-JS v2.2.0
+$copyrightInfo = '/*
+ * Crypto-JS v2.3.0
  * http://code.google.com/p/crypto-js/
  * Copyright (c) 2011, Jeff Mott. All rights reserved.
  * http://code.google.com/p/crypto-js/wiki/License
@@ -9,31 +9,34 @@ $copyrightInfo = '/*!
 ';
 
 $files = array('crypto', 'md5', 'sha1', 'sha256', 'hmac', 'pbkdf2', 'pbkdf2async',
-               'marc4', 'rabbit', 'aes', 'cbc', 'cbc-nopad', 'ofb');
+               'marc4', 'rabbit', 'aes', 'blockmodes');
 $rollups = array(
 	array('crypto', 'md5'),
 	array('crypto', 'sha1'),
 	array('crypto', 'sha256'),
+	array('crypto', 'md5', 'hmac'),
+	array('crypto', 'sha1', 'hmac'),
+	array('crypto', 'sha256', 'hmac'),
 	array('crypto', 'sha1', 'hmac', 'pbkdf2'),
 	array('crypto', 'sha1', 'hmac', 'pbkdf2async'),
 	array('crypto', 'sha1', 'hmac', 'pbkdf2', 'marc4'),
 	array('crypto', 'sha1', 'hmac', 'pbkdf2', 'rabbit'),
-	array('crypto', 'sha1', 'hmac', 'pbkdf2', 'ofb', 'aes')
+	array('crypto', 'sha1', 'hmac', 'pbkdf2', 'blockmodes', 'aes')
 );
 
 foreach ($files as $file) {
 	mkdir("../build/$file");
-	$js = $copyrightInfo . file_get_contents("../src/$file.js");
-	file_put_contents("../build/$file/$file.js", $js);
-	file_put_contents("../build/$file/$file-min.js", compress($js));
+	$js = file_get_contents("../src/$file.js");
+	file_put_contents("../build/$file/$file.js", $copyrightInfo . $js);
+	file_put_contents("../build/$file/$file-min.js", $copyrightInfo . compress($js));
 }
 
 foreach ($rollups as $rollup) {
 	$rollupName = implode("-", $rollup);
 	mkdir("../build/$rollupName");
-	$js = $copyrightInfo;
+	$js = '';
 	foreach ($rollup as $file) $js .= file_get_contents("../src/$file.js");
-	file_put_contents("../build/$rollupName/$rollupName.js", compress($js));
+	file_put_contents("../build/$rollupName/$rollupName.js", $copyrightInfo . compress($js));
 }
 
 function compress($js) {
