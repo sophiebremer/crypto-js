@@ -1,7 +1,11 @@
 (function(){
 
-// Shortcut
-var util = Crypto.util;
+// Shortcuts
+var C = Crypto,
+    util = C.util,
+    charenc = C.charenc,
+    UTF8 = charenc.UTF8,
+    Binary = charenc.Binary;
 
 // Precomputed SBOX
 var SBOX = [ 0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5,
@@ -88,13 +92,17 @@ var AES = Crypto.AES = {
 		var
 
 		    // Convert to bytes
-		    m = util.stringToBytes(message),
+		    m = UTF8.stringToBytes(message),
 
 		    // Generate random IV
 		    iv = util.randomBytes(AES._blocksize * 4),
 
 		    // Generate key
-		    k = Crypto.PBKDF2(password, util.bytesToString(iv), 32, { asBytes: true });
+		    k = password.constructor == String ?
+		        // Derive key from passphrase
+		        Crypto.PBKDF2(password, Binary.bytesToString(iv), 32, { asBytes: true }) :
+		        // else, assume byte array representing cryptographic key
+		        password;
 
 		// Determine mode
 		mode = mode || Crypto.mode.OFB;
@@ -119,7 +127,11 @@ var AES = Crypto.AES = {
 		    iv = c.splice(0, AES._blocksize * 4),
 
 		    // Generate key
-		    k = Crypto.PBKDF2(password, util.bytesToString(iv), 32, { asBytes: true });
+		    k = password.constructor == String ?
+		        // Derive key from passphrase
+		        Crypto.PBKDF2(password, Binary.bytesToString(iv), 32, { asBytes: true }) :
+		        // else, assume byte array representing cryptographic key
+		        password;
 
 		// Determine mode
 		mode = mode || Crypto.mode.OFB;
@@ -129,7 +141,7 @@ var AES = Crypto.AES = {
 		mode.decrypt(AES, c, iv);
 
 		// Return plaintext
-		return util.bytesToString(c);
+		return UTF8.bytesToString(c);
 
 	},
 

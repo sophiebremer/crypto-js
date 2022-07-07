@@ -1,20 +1,28 @@
 (function(){
 
-// Shortcut
-var util = Crypto.util;
+// Shortcuts
+var C = Crypto,
+    util = C.util,
+    charenc = C.charenc,
+    UTF8 = charenc.UTF8,
+    Binary = charenc.Binary;
 
 // Public API
 var SHA1 = Crypto.SHA1 = function (message, options) {
 	var digestbytes = util.wordsToBytes(SHA1._sha1(message));
 	return options && options.asBytes ? digestbytes :
-	       options && options.asString ? util.bytesToString(digestbytes) :
+	       options && options.asString ? Binary.bytesToString(digestbytes) :
 	       util.bytesToHex(digestbytes);
 };
 
 // The core
 SHA1._sha1 = function (message) {
 
-	var m  = util.stringToWords(message),
+	// Convert to byte array
+	if (message.constructor == String) message = UTF8.stringToBytes(message);
+	/* else, assume byte array already */
+
+	var m  = util.bytesToWords(message),
 	    l  = message.length * 8,
 	    w  =  [],
 	    H0 =  1732584193,

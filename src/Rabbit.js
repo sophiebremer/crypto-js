@@ -1,7 +1,11 @@
 (function(){
 
-// Shortcut
-var util = Crypto.util;
+// Shortcuts
+var C = Crypto,
+    util = C.util,
+    charenc = C.charenc,
+    UTF8 = charenc.UTF8,
+    Binary = charenc.Binary;
 
 // Inner state
 var x = [],
@@ -19,13 +23,17 @@ var Rabbit = Crypto.Rabbit = {
 		var
 
 		    // Convert to bytes
-		    m = util.stringToBytes(message),
+		    m = UTF8.stringToBytes(message),
 
 		    // Generate random IV
 		    iv = util.randomBytes(8),
 
 		    // Generate key
-		    k = Crypto.PBKDF2(password, util.bytesToString(iv), 16, { asBytes: true });
+		    k = password.constructor == String ?
+		        // Derive key from passphrase
+		        Crypto.PBKDF2(password, Binary.bytesToString(iv), 32, { asBytes: true }) :
+		        // else, assume byte array representing cryptographic key
+		        password;
 
 		// Encrypt
 		Rabbit._rabbit(m, k, util.bytesToWords(iv));
@@ -46,13 +54,17 @@ var Rabbit = Crypto.Rabbit = {
 		    iv = c.splice(0, 8),
 
 		    // Generate key
-		    k = Crypto.PBKDF2(password, util.bytesToString(iv), 16, { asBytes: true });
+		    k = password.constructor == String ?
+		        // Derive key from passphrase
+		        Crypto.PBKDF2(password, Binary.bytesToString(iv), 32, { asBytes: true }) :
+		        // else, assume byte array representing cryptographic key
+		        password;
 
 		// Decrypt
 		Rabbit._rabbit(c, k, util.bytesToWords(iv));
 
 		// Return plaintext
-		return util.bytesToString(c);
+		return UTF8.bytesToString(c);
 
 	},
 
