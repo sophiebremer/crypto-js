@@ -1,220 +1,166 @@
-(function(){
+(function () {
+    // Shortcuts
+    var C = CryptoJS;
+    var C_lib = C.lib;
+    var StreamCipher = C_lib.StreamCipher;
+    var C_algo = C.algo;
 
-// Shortcuts
-var C = Crypto,
-    util = C.util,
-    charenc = C.charenc,
-    UTF8 = charenc.UTF8,
-    Binary = charenc.Binary;
+    // Reusable objects
+    var S  = [];
+    var C_ = [];
+    var G  = [];
 
-// Inner state
-var x = [],
-    c = [],
-    b;
+    /**
+     * Rabbit stream cipher algorithm
+     */
+    var Rabbit = C_algo.Rabbit = StreamCipher.extend({
+        _doReset: function () {
+            // Shortcuts
+            var K = this._key.words;
+            var iv = this.cfg.iv;
 
-var Rabbit = C.Rabbit = {
+            // Generate initial state values
+            var X = this._X = [
+                K[0], (K[3] << 16) | (K[2] >>> 16),
+                K[1], (K[0] << 16) | (K[3] >>> 16),
+                K[2], (K[1] << 16) | (K[0] >>> 16),
+                K[3], (K[2] << 16) | (K[1] >>> 16)
+            ];
 
-	/**
-	 * Public API
-	 */
+            // Generate initial counter values
+            var C = this._C = [
+                (K[2] << 16) | (K[2] >>> 16), (K[0] & 0xffff0000) | (K[1] & 0x0000ffff),
+                (K[3] << 16) | (K[3] >>> 16), (K[1] & 0xffff0000) | (K[2] & 0x0000ffff),
+                (K[0] << 16) | (K[0] >>> 16), (K[2] & 0xffff0000) | (K[3] & 0x0000ffff),
+                (K[1] << 16) | (K[1] >>> 16), (K[3] & 0xffff0000) | (K[0] & 0x0000ffff)
+            ];
 
-	encrypt: function (message, password) {
+            // Carry bit
+            this._b = 0;
 
-		var
+            // Iterate the system four times
+            for (var i = 0; i < 4; i++) {
+                nextState.call(this);
+            }
 
-		    // Convert to bytes
-		    m = UTF8.stringToBytes(message),
+            // Modify the counters
+            for (var i = 0; i < 8; i++) {
+                C[i] ^= X[(i + 4) & 7];
+            }
 
-		    // Generate random IV
-		    iv = util.randomBytes(8),
+            // IV setup
+            if (iv) {
+                // Shortcuts
+                var IV = iv.words;
+                var IV_0 = IV[0];
+                var IV_1 = IV[1];
 
-		    // Generate key
-		    k = password.constructor == String ?
-		        // Derive key from passphrase
-		        C.PBKDF2(password, iv, 32, { asBytes: true }) :
-		        // else, assume byte array representing cryptographic key
-		        password;
+                // Generate four subvectors
+                var i0 = (((IV_0 << 8) | (IV_0 >>> 24)) & 0x00ff00ff) | (((IV_0 << 24) | (IV_0 >>> 8)) & 0xff00ff00);
+                var i2 = (((IV_1 << 8) | (IV_1 >>> 24)) & 0x00ff00ff) | (((IV_1 << 24) | (IV_1 >>> 8)) & 0xff00ff00);
+                var i1 = (i0 >>> 16) | (i2 & 0xffff0000);
+                var i3 = (i2 << 16)  | (i0 & 0x0000ffff);
 
-		// Encrypt
-		Rabbit._rabbit(m, k, util.bytesToWords(iv));
+                // Modify counter values
+                C[0] ^= i0;
+                C[1] ^= i1;
+                C[2] ^= i2;
+                C[3] ^= i3;
+                C[4] ^= i0;
+                C[5] ^= i1;
+                C[6] ^= i2;
+                C[7] ^= i3;
 
-		// Return ciphertext
-		return util.bytesToBase64(iv.concat(m));
+                // Iterate the system four times
+                for (var i = 0; i < 4; i++) {
+                    nextState.call(this);
+                }
+            }
+        },
 
-	},
+        _doProcessBlock: function (M, offset) {
+            // Shortcut
+            var X = this._X;
 
-	decrypt: function (ciphertext, password) {
+            // Iterate the system
+            nextState.call(this);
 
-		var
+            // Generate four keystream words
+            S[0] = X[0] ^ (X[5] >>> 16) ^ (X[3] << 16);
+            S[1] = X[2] ^ (X[7] >>> 16) ^ (X[5] << 16);
+            S[2] = X[4] ^ (X[1] >>> 16) ^ (X[7] << 16);
+            S[3] = X[6] ^ (X[3] >>> 16) ^ (X[1] << 16);
 
-		    // Convert to bytes
-		    c = util.base64ToBytes(ciphertext),
+            for (var i = 0; i < 4; i++) {
+                // Swap endian
+                S[i] = (((S[i] << 8)  | (S[i] >>> 24)) & 0x00ff00ff) |
+                       (((S[i] << 24) | (S[i] >>> 8))  & 0xff00ff00);
 
-		    // Separate IV and message
-		    iv = c.splice(0, 8),
+                // Encrypt
+                M[offset + i] ^= S[i];
+            }
+        },
 
-		    // Generate key
-		    k = password.constructor == String ?
-		        // Derive key from passphrase
-		        C.PBKDF2(password, iv, 32, { asBytes: true }) :
-		        // else, assume byte array representing cryptographic key
-		        password;
+        blockSize: 128/32,
 
-		// Decrypt
-		Rabbit._rabbit(c, k, util.bytesToWords(iv));
+        ivSize: 64/32
+    });
 
-		// Return plaintext
-		return UTF8.bytesToString(c);
+    function nextState() {
+        // Shortcuts
+        var X = this._X;
+        var C = this._C;
 
-	},
+        // Save old counter values
+        for (var i = 0; i < 8; i++) {
+            C_[i] = C[i];
+        }
 
+        // Calculate new counter values
+        C[0] = (C[0] + 0x4d34d34d + this._b) | 0;
+        C[1] = (C[1] + 0xd34d34d3 + ((C[0] >>> 0) < (C_[0] >>> 0) ? 1 : 0)) | 0;
+        C[2] = (C[2] + 0x34d34d34 + ((C[1] >>> 0) < (C_[1] >>> 0) ? 1 : 0)) | 0;
+        C[3] = (C[3] + 0x4d34d34d + ((C[2] >>> 0) < (C_[2] >>> 0) ? 1 : 0)) | 0;
+        C[4] = (C[4] + 0xd34d34d3 + ((C[3] >>> 0) < (C_[3] >>> 0) ? 1 : 0)) | 0;
+        C[5] = (C[5] + 0x34d34d34 + ((C[4] >>> 0) < (C_[4] >>> 0) ? 1 : 0)) | 0;
+        C[6] = (C[6] + 0x4d34d34d + ((C[5] >>> 0) < (C_[5] >>> 0) ? 1 : 0)) | 0;
+        C[7] = (C[7] + 0xd34d34d3 + ((C[6] >>> 0) < (C_[6] >>> 0) ? 1 : 0)) | 0;
+        this._b = (C[7] >>> 0) < (C_[7] >>> 0) ? 1 : 0;
 
-	/**
-	 * Internal methods
-	 */
+        // Calculate the g-values
+        for (var i = 0; i < 8; i++) {
+            var gx = X[i] + C[i];
 
-	// Encryption/decryption scheme
-	_rabbit: function (m, k, iv) {
+            // Construct high and low argument for squaring
+            var ga = gx & 0xffff;
+            var gb = gx >>> 16;
 
-		Rabbit._keysetup(k);
-		if (iv) Rabbit._ivsetup(iv);
+            // Calculate high and low result of squaring
+            var gh = ((((ga * ga) >>> 17) + ga * gb) >>> 15) + gb * gb;
+            var gl = (((gx & 0xffff0000) * gx) | 0) + (((gx & 0x0000ffff) * gx) | 0);
 
-		for (var s = [], i = 0; i < m.length; i++) {
+            // High XOR low
+            G[i] = gh ^ gl;
+        }
 
-			if (i % 16 == 0) {
+        // Calculate new state values
+        X[0] = (G[0] + ((G[7] << 16) | (G[7] >>> 16)) + ((G[6] << 16) | (G[6] >>> 16))) | 0;
+        X[1] = (G[1] + ((G[0] << 8)  | (G[0] >>> 24)) + G[7]) | 0;
+        X[2] = (G[2] + ((G[1] << 16) | (G[1] >>> 16)) + ((G[0] << 16) | (G[0] >>> 16))) | 0;
+        X[3] = (G[3] + ((G[2] << 8)  | (G[2] >>> 24)) + G[1]) | 0;
+        X[4] = (G[4] + ((G[3] << 16) | (G[3] >>> 16)) + ((G[2] << 16) | (G[2] >>> 16))) | 0;
+        X[5] = (G[5] + ((G[4] << 8)  | (G[4] >>> 24)) + G[3]) | 0;
+        X[6] = (G[6] + ((G[5] << 16) | (G[5] >>> 16)) + ((G[4] << 16) | (G[4] >>> 16))) | 0;
+        X[7] = (G[7] + ((G[6] << 8)  | (G[6] >>> 24)) + G[5]) | 0;
+    }
 
-				// Iterate the system
-				Rabbit._nextstate();
-
-				// Generate 16 bytes of pseudo-random data
-				s[0] = x[0] ^ (x[5] >>> 16) ^ (x[3] << 16);
-				s[1] = x[2] ^ (x[7] >>> 16) ^ (x[5] << 16);
-				s[2] = x[4] ^ (x[1] >>> 16) ^ (x[7] << 16);
-				s[3] = x[6] ^ (x[3] >>> 16) ^ (x[1] << 16);
-
-				// Swap endian
-				for (var j = 0; j < 4; j++) {
-					s[j] = ((s[j] <<  8) | (s[j] >>> 24)) & 0x00FF00FF |
-					       ((s[j] << 24) | (s[j] >>>  8)) & 0xFF00FF00;
-				}
-
-				// Convert words to bytes
-				for (var b = 120; b >= 0; b -= 8)
-					s[b / 8] = (s[b >>> 5] >>> (24 - b % 32)) & 0xFF;
-
-			}
-
-			m[i] ^= s[i % 16];
-
-		}
-
-	},
-
-	// Key setup scheme
-	_keysetup: function (k) {
-
-		// Generate initial state values
-		x[0] = k[0];
-		x[2] = k[1];
-		x[4] = k[2];
-		x[6] = k[3];
-		x[1] = (k[3] << 16) | (k[2] >>> 16);
-		x[3] = (k[0] << 16) | (k[3] >>> 16);
-		x[5] = (k[1] << 16) | (k[0] >>> 16);
-		x[7] = (k[2] << 16) | (k[1] >>> 16);
-
-		// Generate initial counter values
-		c[0] = util.rotl(k[2], 16);
-		c[2] = util.rotl(k[3], 16);
-		c[4] = util.rotl(k[0], 16);
-		c[6] = util.rotl(k[1], 16);
-		c[1] = (k[0] & 0xFFFF0000) | (k[1] & 0xFFFF);
-		c[3] = (k[1] & 0xFFFF0000) | (k[2] & 0xFFFF);
-		c[5] = (k[2] & 0xFFFF0000) | (k[3] & 0xFFFF);
-		c[7] = (k[3] & 0xFFFF0000) | (k[0] & 0xFFFF);
-
-		// Clear carry bit
-		b = 0;
-
-		// Iterate the system four times
-		for (var i = 0; i < 4; i++) Rabbit._nextstate();
-
-		// Modify the counters
-		for (var i = 0; i < 8; i++) c[i] ^= x[(i + 4) & 7];
-
-	},
-
-	// IV setup scheme
-	_ivsetup: function (iv) {
-
-		// Generate four subvectors
-		var i0 = util.endian(iv[0]),
-		    i2 = util.endian(iv[1]),
-		    i1 = (i0 >>> 16) | (i2 & 0xFFFF0000),
-		    i3 = (i2 <<  16) | (i0 & 0x0000FFFF);
-
-		// Modify counter values
-		c[0] ^= i0;
-		c[1] ^= i1;
-		c[2] ^= i2;
-		c[3] ^= i3;
-		c[4] ^= i0;
-		c[5] ^= i1;
-		c[6] ^= i2;
-		c[7] ^= i3;
-
-		// Iterate the system four times
-		for (var i = 0; i < 4; i++) Rabbit._nextstate();
-
-	},
-
-	// Next-state function
-	_nextstate: function () {
-
-		// Save old counter values
-		for (var c_old = [], i = 0; i < 8; i++) c_old[i] = c[i];
-
-		// Calculate new counter values
-		c[0] = (c[0] + 0x4D34D34D + b) >>> 0;
-		c[1] = (c[1] + 0xD34D34D3 + ((c[0] >>> 0) < (c_old[0] >>> 0) ? 1 : 0)) >>> 0;
-		c[2] = (c[2] + 0x34D34D34 + ((c[1] >>> 0) < (c_old[1] >>> 0) ? 1 : 0)) >>> 0;
-		c[3] = (c[3] + 0x4D34D34D + ((c[2] >>> 0) < (c_old[2] >>> 0) ? 1 : 0)) >>> 0;
-		c[4] = (c[4] + 0xD34D34D3 + ((c[3] >>> 0) < (c_old[3] >>> 0) ? 1 : 0)) >>> 0;
-		c[5] = (c[5] + 0x34D34D34 + ((c[4] >>> 0) < (c_old[4] >>> 0) ? 1 : 0)) >>> 0;
-		c[6] = (c[6] + 0x4D34D34D + ((c[5] >>> 0) < (c_old[5] >>> 0) ? 1 : 0)) >>> 0;
-		c[7] = (c[7] + 0xD34D34D3 + ((c[6] >>> 0) < (c_old[6] >>> 0) ? 1 : 0)) >>> 0;
-		b = (c[7] >>> 0) < (c_old[7] >>> 0) ? 1 : 0;
-
-		// Calculate the g-values
-		for (var g = [], i = 0; i < 8; i++) {
-
-			var gx = (x[i] + c[i]) >>> 0;
-
-			// Construct high and low argument for squaring
-			var ga = gx & 0xFFFF,
-			    gb = gx >>> 16;
-
-			// Calculate high and low result of squaring
-			var gh = ((((ga * ga) >>> 17) + ga * gb) >>> 15) + gb * gb,
-			    gl = (((gx & 0xFFFF0000) * gx) >>> 0) + (((gx & 0x0000FFFF) * gx) >>> 0) >>> 0;
-
-			// High XOR low
-			g[i] = gh ^ gl;
-
-		}
-
-		// Calculate new state values
-		x[0] = g[0] + ((g[7] << 16) | (g[7] >>> 16)) + ((g[6] << 16) | (g[6] >>> 16));
-		x[1] = g[1] + ((g[0] <<  8) | (g[0] >>> 24)) + g[7];
-		x[2] = g[2] + ((g[1] << 16) | (g[1] >>> 16)) + ((g[0] << 16) | (g[0] >>> 16));
-		x[3] = g[3] + ((g[2] <<  8) | (g[2] >>> 24)) + g[1];
-		x[4] = g[4] + ((g[3] << 16) | (g[3] >>> 16)) + ((g[2] << 16) | (g[2] >>> 16));
-		x[5] = g[5] + ((g[4] <<  8) | (g[4] >>> 24)) + g[3];
-		x[6] = g[6] + ((g[5] << 16) | (g[5] >>> 16)) + ((g[4] << 16) | (g[4] >>> 16));
-		x[7] = g[7] + ((g[6] <<  8) | (g[6] >>> 24)) + g[5];
-
-	}
-
-};
-
-})();
+    /**
+     * Shortcut functions to the cipher's object interface.
+     *
+     * @example
+     *
+     *     var ciphertext = CryptoJS.Rabbit.encrypt(message, key, cfg);
+     *     var plaintext  = CryptoJS.Rabbit.decrypt(ciphertext, key, cfg);
+     */
+    C.Rabbit = StreamCipher._createHelper(Rabbit);
+}());

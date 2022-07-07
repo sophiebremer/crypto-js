@@ -1,31 +1,80 @@
-TestSuite.add(new YAHOO.tool.TestCase({
+YUI.add('algo-rabbit-test', function (Y) {
+    var C = CryptoJS;
 
-	test_Rabbit: function () {
+    Y.Test.Runner.add(new Y.Test.Case({
+        name: 'Rabbit',
 
-		// Test vectors
-		Crypto.Rabbit._rabbit(message = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0]);
-		Assert.areEqual([0x02, 0xF7, 0x4A, 0x1C, 0x26, 0x45, 0x6B, 0xF5, 0xEC, 0xD6, 0xA5, 0x36, 0xF0, 0x54, 0x57, 0xB1].toString(), message.toString());
+        testVector1: function () {
+            Y.Assert.areEqual('02f74a1c26456bf5ecd6a536f05457b1', C.Rabbit.encrypt(C.enc.Hex.parse('00000000000000000000000000000000'), C.enc.Hex.parse('00000000000000000000000000000000')).ciphertext);
+        },
 
-		Crypto.Rabbit._rabbit(message = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0xDC51C3AC, 0x3BFC62F1, 0x2E3D36FE, 0x91281329]);
-		Assert.areEqual([0x9C, 0x51, 0xE2, 0x87, 0x84, 0xC3, 0x7F, 0xE9, 0xA1, 0x27, 0xF6, 0x3E, 0xC8, 0xF3, 0x2D, 0x3D].toString(), message.toString());
+        testVector2: function () {
+            Y.Assert.areEqual('9c51e28784c37fe9a127f63ec8f32d3d', C.Rabbit.encrypt(C.enc.Hex.parse('00000000000000000000000000000000'), C.enc.Hex.parse('dc51c3ac3bfc62f12e3d36fe91281329')).ciphertext);
+        },
 
-		Crypto.Rabbit._rabbit(message = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0xC09B0043, 0xE9E9AB01, 0x87E0C733, 0x83957415]);
-		Assert.areEqual([0x9B, 0x60, 0xD0, 0x02, 0xFD, 0x5C, 0xEB, 0x32, 0xAC, 0xCD, 0x41, 0xA0, 0xCD, 0x0D, 0xB1, 0x0C].toString(), message.toString());
+        testVector3: function () {
+            Y.Assert.areEqual('9b60d002fd5ceb32accd41a0cd0db10c', C.Rabbit.encrypt(C.enc.Hex.parse('00000000000000000000000000000000'), C.enc.Hex.parse('c09b0043e9e9ab0187e0c73383957415')).ciphertext);
+        },
 
-		Crypto.Rabbit._rabbit(message = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0], [0, 0]);
-		Assert.areEqual([0xED, 0xB7, 0x05, 0x67, 0x37, 0x5D, 0xCD, 0x7C, 0xD8, 0x95, 0x54, 0xF8, 0x5E, 0x27, 0xA7, 0xC6].toString(), message.toString());
+        testVector4: function () {
+            Y.Assert.areEqual('edb70567375dcd7cd89554f85e27a7c6', C.Rabbit.encrypt(C.enc.Hex.parse('00000000000000000000000000000000'), C.enc.Hex.parse('00000000000000000000000000000000'), { iv: C.enc.Hex.parse('0000000000000000') }).ciphertext);
+        },
 
-		Crypto.Rabbit._rabbit(message = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0], [0x597E26C1, 0x75F573C3]);
-		Assert.areEqual([0x6D, 0x7D, 0x01, 0x22, 0x92, 0xCC, 0xDC, 0xE0, 0xE2, 0x12, 0x00, 0x58, 0xB9, 0x4E, 0xCD, 0x1F].toString(), message.toString());
+        testVector5: function () {
+            Y.Assert.areEqual('6d7d012292ccdce0e2120058b94ecd1f', C.Rabbit.encrypt(C.enc.Hex.parse('00000000000000000000000000000000'), C.enc.Hex.parse('00000000000000000000000000000000'), { iv: C.enc.Hex.parse('597e26c175f573c3') }).ciphertext);
+        },
 
-		Crypto.Rabbit._rabbit(message = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0], [0x2717F4D2, 0x1A56EBA6]);
-		Assert.areEqual([0x4D, 0x10, 0x51, 0xA1, 0x23, 0xAF, 0xB6, 0x70, 0xBF, 0x8D, 0x85, 0x05, 0xC8, 0xD8, 0x5A, 0x44].toString(), message.toString());
+        testVector6: function () {
+            Y.Assert.areEqual('4d1051a123afb670bf8d8505c8d85a44', C.Rabbit.encrypt(C.enc.Hex.parse('00000000000000000000000000000000'), C.enc.Hex.parse('00000000000000000000000000000000'), { iv: C.enc.Hex.parse('2717f4d21a56eba6') }).ciphertext);
+        },
 
-		// Test D(E(m)) == m
-		var key = Crypto.util.randomBytes(16);
-		Assert.areEqual(data, Crypto.Rabbit.decrypt(Crypto.Rabbit.encrypt(data, key), key));
-		Assert.areEqual('Сообщение', Crypto.Rabbit.decrypt(Crypto.Rabbit.encrypt('Сообщение', 'Пароль'), 'Пароль'));
+        testMultiPart: function () {
+            var rabbit = C.algo.Rabbit.createEncryptor(C.enc.Hex.parse('00000000000000000000000000000000'));
+            var ciphertext1 = rabbit.process(C.enc.Hex.parse('000000000000'));
+            var ciphertext2 = rabbit.process(C.enc.Hex.parse('0000000000'));
+            var ciphertext3 = rabbit.process(C.enc.Hex.parse('0000000000'));
+            var ciphertext4 = rabbit.finalize();
 
-	}
+            Y.Assert.areEqual('02f74a1c26456bf5ecd6a536f05457b1', ciphertext1.concat(ciphertext2).concat(ciphertext3).concat(ciphertext4));
+        },
 
-}));
+        testInputIntegrity: function () {
+            var message = C.enc.Hex.parse('00000000000000000000000000000000');
+            var key = C.enc.Hex.parse('00000000000000000000000000000000');
+            var iv = C.enc.Hex.parse('0000000000000000');
+
+            var expectedMessage = message.toString();
+            var expectedKey = key.toString();
+            var expectedIv = iv.toString();
+
+            C.Rabbit.encrypt(message, key, { iv: iv });
+
+            Y.Assert.areEqual(expectedMessage, message);
+            Y.Assert.areEqual(expectedKey, key);
+            Y.Assert.areEqual(expectedIv, iv);
+        },
+
+        testHelper: function () {
+            // Save original random method
+            var random = C.lib.WordArray.random;
+
+            // Replace random method with one that returns a predictable value
+            C.lib.WordArray.random = function (nBytes) {
+                var words = [];
+                for (var i = 0; i < nBytes; i += 4) {
+                    words.push([0x11223344]);
+                }
+
+                return C.lib.WordArray.create(words, nBytes);
+            };
+
+            // Test
+            Y.Assert.areEqual(C.algo.Rabbit.createEncryptor(C.MD5('Jefe')).finalize('Hi There').toString(), C.Rabbit.encrypt('Hi There', C.MD5('Jefe')).ciphertext);
+            Y.Assert.areEqual(C.lib.SerializableCipher.encrypt(C.algo.Rabbit, 'Hi There', C.MD5('Jefe')).toString(), C.Rabbit.encrypt('Hi There', C.MD5('Jefe')));
+            Y.Assert.areEqual(C.lib.PasswordBasedCipher.encrypt(C.algo.Rabbit, 'Hi There', 'Jefe').toString(), C.Rabbit.encrypt('Hi There', 'Jefe'));
+
+            // Restore random method
+            C.lib.WordArray.random = random;
+        }
+    }));
+}, '$Rev$');

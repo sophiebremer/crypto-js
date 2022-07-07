@@ -1,71 +1,91 @@
 <?php
 
-$copyrightInfo = '/*
- * Crypto-JS v2.5.4
- * http://code.google.com/p/crypto-js/
- * (c) 2009-2012 by Jeff Mott. All rights reserved.
- * http://code.google.com/p/crypto-js/wiki/License
- */
-';
+// Register class loader
+require_once __DIR__.'/lib/symfony/src/Symfony/Component/ClassLoader/UniversalClassLoader.php';
+$loader = new Symfony\Component\ClassLoader\UniversalClassLoader();
+$loader->registerNamespace('Symfony', __DIR__.'/lib/symfony/src');
+$loader->register();
 
-$files = array('crypto', 'md5', 'sha1', 'sha256', 'hmac', 'pbkdf2', 'pbkdf2async',
-               'marc4', 'rabbit', 'aes', 'des', 'blockmodes');
-$rollups = array(
-	array('crypto', 'md5'),
-	array('crypto', 'sha1'),
-	array('crypto', 'sha256'),
-	array('crypto', 'md5', 'hmac'),
-	array('crypto', 'sha1', 'hmac'),
-	array('crypto', 'sha256', 'hmac'),
-	array('crypto', 'sha1', 'hmac', 'pbkdf2'),
-	array('crypto', 'sha1', 'hmac', 'pbkdf2async'),
-	array('crypto', 'sha1', 'hmac', 'pbkdf2', 'marc4'),
-	array('crypto', 'sha1', 'hmac', 'pbkdf2', 'rabbit'),
-	array('crypto', 'sha1', 'hmac', 'pbkdf2', 'blockmodes', 'aes'),
-	array('crypto', 'sha1', 'hmac', 'pbkdf2', 'blockmodes', 'des')
-);
+// Read build file
+$build = Symfony\Component\Yaml\Yaml::parse(__DIR__.'/build.yml');
 
-foreach ($files as $file) {
-	mkdir("../build/$file");
-	$js = file_get_contents("../src/$file.js");
-	file_put_contents("../build/$file/$file.js", $copyrightInfo . $js);
-	file_put_contents("../build/$file/$file-min.js", $copyrightInfo . compress($js));
+// Build components
+mkdir(__DIR__."/../build/components", 0777, true);
+foreach ($build['components'] as $componentName) {
+    // Compute component source path
+    $componentSourcePath = __DIR__."/../src/$componentName.js";
+
+    // Build raw
+    file_put_contents(
+        __DIR__."/../build/components/$componentName.js",
+        render(__DIR__.'/copyright.php', array('content' => file_get_contents($componentSourcePath)))
+    );
+
+    // Build minified
+    file_put_contents(
+        __DIR__."/../build/components/$componentName-min.js",
+        render(__DIR__.'/copyright.php', array('content' => compress(file_get_contents($componentSourcePath))))
+    );
 }
 
-foreach ($rollups as $rollup) {
-	$rollupName = implode("-", $rollup);
-	mkdir("../build/$rollupName");
-	$js = '';
-	foreach ($rollup as $file) $js .= file_get_contents("../src/$file.js");
-	file_put_contents("../build/$rollupName/$rollupName.js", $copyrightInfo . compress($js));
+// Build rollups
+mkdir(__DIR__.'/../build/rollups', 0777, true);
+foreach ($build['rollups'] as $rollupName => $components) {
+    // Compute component source paths
+    $componentSourcePaths = array_map(function ($componentName) {
+        return __DIR__."/../src/$componentName.js";
+    }, $components);
+
+    // Get component source contents
+    $componentSourceContents = implode('', array_map('file_get_contents', $componentSourcePaths));
+
+    // Build rollup
+    file_put_contents(
+        __DIR__."/../build/rollups/$rollupName.js",
+        render(__DIR__.'/copyright.php', array('content' => compress($componentSourceContents)))
+    );
 }
 
-function compress($js) {
+function render($__template__, $__params__)
+{
+    extract($__params__);
 
-	$cmd = 'java -jar compiler/compiler.jar';
+    ob_start();
+    include $__template__;
+    $content = ob_get_clean();
 
-	$descriptors = array(
-		0 => array('pipe', 'r'),
-		1 => array('pipe', 'w'),
-		2 => array('pipe', 'w')
-	);
+    return $content;
+}
 
-	$process = proc_open($cmd, $descriptors, $pipes);
-	if ($process === false) die();
+function compress($jsContent)
+{
+    // Open process
+    $cmd = 'java -jar "'.__DIR__.'/bin/compiler/compiler.jar"';
+    $descriptors = array(
+        0 => array('pipe', 'r'),
+        1 => array('pipe', 'w'),
+        2 => array('pipe', 'w')
+    );
+    $process = proc_open($cmd, $descriptors, $pipes);
+    if ($process === false) {
+        die('proc_open failed');
+    }
 
-	fwrite($pipes[0], $js);
-	fclose($pipes[0]);
+    // Write raw
+    fwrite($pipes[0], $jsContent);
+    fclose($pipes[0]);
 
-	$compressed = stream_get_contents($pipes[1]);
-	fclose($pipes[1]);
+    // Read compressed
+    $compressed = stream_get_contents($pipes[1]);
+    fclose($pipes[1]);
 
-	$errors = stream_get_contents($pipes[2]);
-	fclose($pipes[2]);
+    // Check errors
+    $errors = stream_get_contents($pipes[2]);
+    fclose($pipes[2]);
+    $exitStatus = proc_close($process);
+    if ($errors != '' or $exitStatus != 0) {
+        die('errors or exit status failed');
+    }
 
-	$exitStatus = proc_close($process);
-
-	if ($exitStatus != 0 or $errors != '') die();
-
-	return $compressed;
-
+    return $compressed;
 }

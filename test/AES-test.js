@@ -1,60 +1,80 @@
-TestSuite.add(new YAHOO.tool.TestCase({
+YUI.add('algo-aes-test', function (Y) {
+    var C = CryptoJS;
 
-	test_AES128: function () {
+    Y.Test.Runner.add(new Y.Test.Case({
+        name: 'AES',
 
-		// Test vectors
-		Crypto.AES._init([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]);
-		Crypto.AES._encryptblock(block = [0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF], 0);
-		Assert.areEqual("69c4e0d86a7b0430d8cdb78070b4c55a", Crypto.util.bytesToHex(block));
+        testEncryptKeySize128: function () {
+            Y.Assert.areEqual('69c4e0d86a7b0430d8cdb78070b4c55a', C.AES.encrypt(C.enc.Hex.parse('00112233445566778899aabbccddeeff'), C.enc.Hex.parse('000102030405060708090a0b0c0d0e0f'), { mode: C.mode.ECB, padding: C.pad.NoPadding }).ciphertext);
+        },
 
-		// Test D(E(m)) == m
-		Crypto.AES._encryptblock(block = [0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF], 0);
-		Crypto.AES._decryptblock(block, 0);
-		Assert.areEqual([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF].toString(), block.toString());
+        testEncryptKeySize192: function () {
+            Y.Assert.areEqual('dda97ca4864cdfe06eaf70a0ec0d7191', C.AES.encrypt(C.enc.Hex.parse('00112233445566778899aabbccddeeff'), C.enc.Hex.parse('000102030405060708090a0b0c0d0e0f1011121314151617'), { mode: C.mode.ECB, padding: C.pad.NoPadding }).ciphertext);
+        },
 
-		var key = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F";
-		Assert.areEqual(data, Crypto.AES.decrypt(Crypto.AES.encrypt(data.slice(0), key, { mode: new Crypto.mode.CBC }), key, { mode: new Crypto.mode.CBC, asBytes: true }).toString());
-		Assert.areEqual(data, Crypto.AES.decrypt(Crypto.AES.encrypt(data.slice(0), key), key, { asBytes: true }).toString());
+        testEncryptKeySize256: function () {
+            Y.Assert.areEqual('8ea2b7ca516745bfeafc49904b496089', C.AES.encrypt(C.enc.Hex.parse('00112233445566778899aabbccddeeff'), C.enc.Hex.parse('000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'), { mode: C.mode.ECB, padding: C.pad.NoPadding }).ciphertext);
+        },
 
-	},
+        testDecryptKeySize128: function () {
+            Y.Assert.areEqual('00112233445566778899aabbccddeeff', C.AES.decrypt(C.lib.CipherParams.create({ ciphertext: C.enc.Hex.parse('69c4e0d86a7b0430d8cdb78070b4c55a') }), C.enc.Hex.parse('000102030405060708090a0b0c0d0e0f'), { mode: C.mode.ECB, padding: C.pad.NoPadding }));
+        },
 
-	test_AES192: function () {
+        testDecryptKeySize192: function () {
+            Y.Assert.areEqual('00112233445566778899aabbccddeeff', C.AES.decrypt(C.lib.CipherParams.create({ ciphertext: C.enc.Hex.parse('dda97ca4864cdfe06eaf70a0ec0d7191') }), C.enc.Hex.parse('000102030405060708090a0b0c0d0e0f1011121314151617'), { mode: C.mode.ECB, padding: C.pad.NoPadding }));
+        },
 
-		// Test vectors
-		Crypto.AES._init([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17]);
-		Crypto.AES._encryptblock(block = [0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF], 0);
-		Assert.areEqual("dda97ca4864cdfe06eaf70a0ec0d7191", Crypto.util.bytesToHex(block));
+        testDecryptKeySize256: function () {
+            Y.Assert.areEqual('00112233445566778899aabbccddeeff', C.AES.decrypt(C.lib.CipherParams.create({ ciphertext: C.enc.Hex.parse('8ea2b7ca516745bfeafc49904b496089') }), C.enc.Hex.parse('000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'), { mode: C.mode.ECB, padding: C.pad.NoPadding }));
+        },
 
-		// Test D(E(m)) == m
-		Crypto.AES._encryptblock(block = [0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF], 0);
-		Crypto.AES._decryptblock(block, 0);
-		Assert.areEqual([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF].toString(), block.toString());
+        testMultiPart: function () {
+            var aes = C.algo.AES.createEncryptor(C.enc.Hex.parse('000102030405060708090a0b0c0d0e0f'), { mode: C.mode.ECB, padding: C.pad.NoPadding });
+            var ciphertext1 = aes.process(C.enc.Hex.parse('001122334455'));
+            var ciphertext2 = aes.process(C.enc.Hex.parse('66778899aa'));
+            var ciphertext3 = aes.process(C.enc.Hex.parse('bbccddeeff'));
+            var ciphertext4 = aes.finalize();
 
-		var key = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17";
-		Assert.areEqual(data, Crypto.AES.decrypt(Crypto.AES.encrypt(data.slice(0), key, { mode: new Crypto.mode.CBC }), key, { mode: new Crypto.mode.CBC, asBytes: true }).toString());
-		Assert.areEqual(data, Crypto.AES.decrypt(Crypto.AES.encrypt(data.slice(0), key), key, { asBytes: true }).toString());
+            Y.Assert.areEqual('69c4e0d86a7b0430d8cdb78070b4c55a', ciphertext1.concat(ciphertext2).concat(ciphertext3).concat(ciphertext4));
+        },
 
-	},
+        testInputIntegrity: function () {
+            var message = C.enc.Hex.parse('00112233445566778899aabbccddeeff');
+            var key = C.enc.Hex.parse('000102030405060708090a0b0c0d0e0f');
+            var iv = C.enc.Hex.parse('101112131415161718191a1b1c1d1e1f');
 
-	test_AES256: function () {
+            var expectedMessage = message.toString();
+            var expectedKey = key.toString();
+            var expectedIv = iv.toString();
 
+            C.AES.encrypt(message, key, { iv: iv });
 
-		// Test vectors
-		Crypto.AES._init([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F]);
-		Crypto.AES._encryptblock(block = [0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF], 0);
-		Assert.areEqual("8ea2b7ca516745bfeafc49904b496089", Crypto.util.bytesToHex(block));
+            Y.Assert.areEqual(expectedMessage, message);
+            Y.Assert.areEqual(expectedKey, key);
+            Y.Assert.areEqual(expectedIv, iv);
+        },
 
-		// Test D(E(m)) == m
-		Crypto.AES._encryptblock(block = [0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF], 0);
-		Crypto.AES._decryptblock(block, 0);
-		Assert.areEqual([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF].toString(), block.toString());
+        testHelper: function () {
+            // Save original random method
+            var random = C.lib.WordArray.random;
 
-		var key = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F";
-		Assert.areEqual(data, Crypto.AES.decrypt(Crypto.AES.encrypt(data.slice(0), key, { mode: new Crypto.mode.CBC }), key, { mode: new Crypto.mode.CBC, asBytes: true }).toString());
-		Assert.areEqual(data, Crypto.AES.decrypt(Crypto.AES.encrypt(data.slice(0), key), key, { asBytes: true }).toString());
+            // Replace random method with one that returns a predictable value
+            C.lib.WordArray.random = function (nBytes) {
+                var words = [];
+                for (var i = 0; i < nBytes; i += 4) {
+                    words.push([0x11223344]);
+                }
 
-		Assert.areEqual('Сообщение', Crypto.AES.decrypt(Crypto.AES.encrypt('Сообщение', 'Пароль'), 'Пароль'));
+                return C.lib.WordArray.create(words, nBytes);
+            };
 
-	}
+            // Test
+            Y.Assert.areEqual(C.algo.AES.createEncryptor(C.SHA256('Jefe'), { mode: C.mode.ECB, padding: C.pad.NoPadding }).finalize('Hi There').toString(), C.AES.encrypt('Hi There', C.SHA256('Jefe'), { mode: C.mode.ECB, padding: C.pad.NoPadding }).ciphertext);
+            Y.Assert.areEqual(C.lib.SerializableCipher.encrypt(C.algo.AES, 'Hi There', C.SHA256('Jefe'), { mode: C.mode.ECB, padding: C.pad.NoPadding }).toString(), C.AES.encrypt('Hi There', C.SHA256('Jefe'), { mode: C.mode.ECB, padding: C.pad.NoPadding }));
+            Y.Assert.areEqual(C.lib.PasswordBasedCipher.encrypt(C.algo.AES, 'Hi There', 'Jefe', { mode: C.mode.ECB, padding: C.pad.NoPadding }).toString(), C.AES.encrypt('Hi There', 'Jefe', { mode: C.mode.ECB, padding: C.pad.NoPadding }));
 
-}));
+            // Restore random method
+            C.lib.WordArray.random = random;
+        }
+    }));
+}, '$Rev$');

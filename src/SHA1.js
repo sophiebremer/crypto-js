@@ -1,85 +1,119 @@
-(function(){
+(function () {
+    // Shortcuts
+    var C = CryptoJS;
+    var C_lib = C.lib;
+    var WordArray = C_lib.WordArray;
+    var Hasher = C_lib.Hasher;
+    var C_algo = C.algo;
 
-// Shortcuts
-var C = Crypto,
-    util = C.util,
-    charenc = C.charenc,
-    UTF8 = charenc.UTF8,
-    Binary = charenc.Binary;
+    // Reusable object
+    var W = [];
 
-// Public API
-var SHA1 = C.SHA1 = function (message, options) {
-	var digestbytes = util.wordsToBytes(SHA1._sha1(message));
-	return options && options.asBytes ? digestbytes :
-	       options && options.asString ? Binary.bytesToString(digestbytes) :
-	       util.bytesToHex(digestbytes);
-};
+    /**
+     * SHA-1 hash algorithm.
+     */
+    var SHA1 = C_algo.SHA1 = Hasher.extend({
+        _doReset: function () {
+            this._hash = WordArray.create([
+                0x67452301, 0xefcdab89,
+                0x98badcfe, 0x10325476,
+                0xc3d2e1f0
+            ]);
+        },
 
-// The core
-SHA1._sha1 = function (message) {
+        _doProcessBlock: function (M, offset) {
+            // Shortcut
+            var H = this._hash.words;
 
-	// Convert to byte array
-	if (message.constructor == String) message = UTF8.stringToBytes(message);
-	/* else, assume byte array already */
+            // Working variables
+            var a = H[0];
+            var b = H[1];
+            var c = H[2];
+            var d = H[3];
+            var e = H[4];
 
-	var m  = util.bytesToWords(message),
-	    l  = message.length * 8,
-	    w  =  [],
-	    H0 =  1732584193,
-	    H1 = -271733879,
-	    H2 = -1732584194,
-	    H3 =  271733878,
-	    H4 = -1009589776;
+            // Computation
+            for (var i = 0; i < 80; i++) {
+                if (i < 16) {
+                    W[i] = M[offset + i] | 0;
+                } else {
+                    var n = W[i - 3] ^ W[i - 8] ^ W[i - 14] ^ W[i - 16];
+                    W[i] = (n << 1) | (n >>> 31);
+                }
 
-	// Padding
-	m[l >> 5] |= 0x80 << (24 - l % 32);
-	m[((l + 64 >>> 9) << 4) + 15] = l;
+                var t = ((a << 5) | (a >>> 27)) + e + W[i];
+                if (i < 20) {
+                    t += ((b & c) | (~b & d)) + 0x5a827999;
+                } else if (i < 40) {
+                    t += (b ^ c ^ d) + 0x6ed9eba1;
+                } else if (i < 60) {
+                    t += ((b & c) | (b & d) | (c & d)) - 0x70e44324;
+                } else /* if (i < 80) */ {
+                    t += (b ^ c ^ d) - 0x359d3e2a;
+                }
 
-	for (var i = 0; i < m.length; i += 16) {
+                e = d;
+                d = c;
+                c = (b << 30) | (b >>> 2);
+                b = a;
+                a = t;
+            }
 
-		var a = H0,
-		    b = H1,
-		    c = H2,
-		    d = H3,
-		    e = H4;
+            // Intermediate hash value
+            H[0] = (H[0] + a) | 0;
+            H[1] = (H[1] + b) | 0;
+            H[2] = (H[2] + c) | 0;
+            H[3] = (H[3] + d) | 0;
+            H[4] = (H[4] + e) | 0;
+        },
 
-		for (var j = 0; j < 80; j++) {
+        _doFinalize: function () {
+            // Shortcuts
+            var data = this._data;
+            var dataWords = data.words;
 
-			if (j < 16) w[j] = m[i + j];
-			else {
-				var n = w[j-3] ^ w[j-8] ^ w[j-14] ^ w[j-16];
-				w[j] = (n << 1) | (n >>> 31);
-			}
+            var nBitsTotal = this._nDataBytes * 8;
+            var nBitsLeft = data.sigBytes * 8;
 
-			var t = ((H0 << 5) | (H0 >>> 27)) + H4 + (w[j] >>> 0) + (
-			         j < 20 ? (H1 & H2 | ~H1 & H3) + 1518500249 :
-			         j < 40 ? (H1 ^ H2 ^ H3) + 1859775393 :
-			         j < 60 ? (H1 & H2 | H1 & H3 | H2 & H3) - 1894007588 :
-			                  (H1 ^ H2 ^ H3) - 899497514);
+            // Add padding
+            dataWords[nBitsLeft >>> 5] |= 0x80 << (24 - nBitsLeft % 32);
+            dataWords[(((nBitsLeft + 64) >>> 9) << 4) + 15] = nBitsTotal;
+            data.sigBytes = dataWords.length * 4;
 
-			H4 =  H3;
-			H3 =  H2;
-			H2 = (H1 << 30) | (H1 >>> 2);
-			H1 =  H0;
-			H0 =  t;
+            // Hash final blocks
+            this._process();
+        }
+    });
 
-		}
+    /**
+     * Shortcut function to the hasher's object interface.
+     *
+     * @param {WordArray|string} message The message to hash.
+     *
+     * @return {WordArray} The hash.
+     *
+     * @static
+     *
+     * @example
+     *
+     *     var hash = CryptoJS.SHA1('message');
+     *     var hash = CryptoJS.SHA1(wordArray);
+     */
+    C.SHA1 = Hasher._createHelper(SHA1);
 
-		H0 += a;
-		H1 += b;
-		H2 += c;
-		H3 += d;
-		H4 += e;
-
-	}
-
-	return [H0, H1, H2, H3, H4];
-
-};
-
-// Package private blocksize
-SHA1._blocksize = 16;
-
-SHA1._digestsize = 20;
-
-})();
+    /**
+     * Shortcut function to the HMAC's object interface.
+     *
+     * @param {WordArray|string} message The message to hash.
+     * @param {WordArray|string} key The secret key.
+     *
+     * @return {WordArray} The HMAC.
+     *
+     * @static
+     *
+     * @example
+     *
+     *     var hmac = CryptoJS.HmacSHA1(message, key);
+     */
+    C.HmacSHA1 = Hasher._createHmacHelper(SHA1);
+}());

@@ -1,157 +1,168 @@
-(function(){
+(function (Math) {
+    // Shortcuts
+    var C = CryptoJS;
+    var C_lib = C.lib;
+    var WordArray = C_lib.WordArray;
+    var Hasher = C_lib.Hasher;
+    var C_algo = C.algo;
 
-// Shortcuts
-var C = Crypto,
-    util = C.util,
-    charenc = C.charenc,
-    UTF8 = charenc.UTF8,
-    Binary = charenc.Binary;
+    // Constants table
+    var T = [];
 
-// Public API
-var MD5 = C.MD5 = function (message, options) {
-	var digestbytes = util.wordsToBytes(MD5._md5(message));
-	return options && options.asBytes ? digestbytes :
-	       options && options.asString ? Binary.bytesToString(digestbytes) :
-	       util.bytesToHex(digestbytes);
-};
+    // Compute constants
+    (function () {
+        for (var i = 0; i < 64; i++) {
+            T[i] = (Math.abs(Math.sin(i + 1)) * 0x100000000) | 0;
+        }
+    }());
 
-// The core
-MD5._md5 = function (message) {
+    /**
+     * MD5 hash algorithm.
+     */
+    var MD5 = C_algo.MD5 = Hasher.extend({
+        _doReset: function () {
+            this._hash = WordArray.create([
+                0x67452301, 0xefcdab89,
+                0x98badcfe, 0x10325476
+            ]);
+        },
 
-	// Convert to byte array
-	if (message.constructor == String) message = UTF8.stringToBytes(message);
-	/* else, assume byte array already */
+        _doProcessBlock: function (M, offset) {
+            // Swap endian
+            for (var i = 0; i < 16; i++) {
+                // Shortcuts
+                var offset_i = offset + i;
+                var M_offset_i = M[offset_i];
 
-	var m = util.bytesToWords(message),
-	    l = message.length * 8,
-	    a =  1732584193,
-	    b = -271733879,
-	    c = -1732584194,
-	    d =  271733878;
+                M[offset_i] = (
+                    (((M_offset_i << 8)  | (M_offset_i >>> 24)) & 0x00ff00ff) |
+                    (((M_offset_i << 24) | (M_offset_i >>> 8))  & 0xff00ff00)
+                );
+            }
 
-	// Swap endian
-	for (var i = 0; i < m.length; i++) {
-		m[i] = ((m[i] <<  8) | (m[i] >>> 24)) & 0x00FF00FF |
-		       ((m[i] << 24) | (m[i] >>>  8)) & 0xFF00FF00;
-	}
+            // Shortcut
+            var H = this._hash.words;
 
-	// Padding
-	m[l >>> 5] |= 0x80 << (l % 32);
-	m[(((l + 64) >>> 9) << 4) + 14] = l;
+            // Working variables
+            var a = H[0];
+            var b = H[1];
+            var c = H[2];
+            var d = H[3];
 
-	// Method shortcuts
-	var FF = MD5._ff,
-	    GG = MD5._gg,
-	    HH = MD5._hh,
-	    II = MD5._ii;
+            // Computation
+            for (var i = 0; i < 64; i += 4) {
+                if (i < 16) {
+                    a = FF(a, b, c, d, M[offset + i],     7,  T[i]);
+                    d = FF(d, a, b, c, M[offset + i + 1], 12, T[i + 1]);
+                    c = FF(c, d, a, b, M[offset + i + 2], 17, T[i + 2]);
+                    b = FF(b, c, d, a, M[offset + i + 3], 22, T[i + 3]);
+                } else if (i < 32) {
+                    a = GG(a, b, c, d, M[offset + ((i + 1) % 16)],  5,  T[i]);
+                    d = GG(d, a, b, c, M[offset + ((i + 6) % 16)],  9,  T[i + 1]);
+                    c = GG(c, d, a, b, M[offset + ((i + 11) % 16)], 14, T[i + 2]);
+                    b = GG(b, c, d, a, M[offset + (i % 16)],        20, T[i + 3]);
+                } else if (i < 48) {
+                    a = HH(a, b, c, d, M[offset + ((i * 3 + 5) % 16)],  4,  T[i]);
+                    d = HH(d, a, b, c, M[offset + ((i * 3 + 8) % 16)],  11, T[i + 1]);
+                    c = HH(c, d, a, b, M[offset + ((i * 3 + 11) % 16)], 16, T[i + 2]);
+                    b = HH(b, c, d, a, M[offset + ((i * 3 + 14) % 16)], 23, T[i + 3]);
+                } else /* if (i < 64) */ {
+                    a = II(a, b, c, d, M[offset + ((i * 3) % 16)],      6,  T[i]);
+                    d = II(d, a, b, c, M[offset + ((i * 3 + 7) % 16)],  10, T[i + 1]);
+                    c = II(c, d, a, b, M[offset + ((i * 3 + 14) % 16)], 15, T[i + 2]);
+                    b = II(b, c, d, a, M[offset + ((i * 3 + 5) % 16)],  21, T[i + 3]);
+                }
+            }
 
-	for (var i = 0; i < m.length; i += 16) {
+            // Intermediate hash value
+            H[0] = (H[0] + a) | 0;
+            H[1] = (H[1] + b) | 0;
+            H[2] = (H[2] + c) | 0;
+            H[3] = (H[3] + d) | 0;
+        },
 
-		var aa = a,
-		    bb = b,
-		    cc = c,
-		    dd = d;
+        _doFinalize: function () {
+            // Shortcuts
+            var data = this._data;
+            var dataWords = data.words;
 
-		a = FF(a, b, c, d, m[i+ 0],  7, -680876936);
-		d = FF(d, a, b, c, m[i+ 1], 12, -389564586);
-		c = FF(c, d, a, b, m[i+ 2], 17,  606105819);
-		b = FF(b, c, d, a, m[i+ 3], 22, -1044525330);
-		a = FF(a, b, c, d, m[i+ 4],  7, -176418897);
-		d = FF(d, a, b, c, m[i+ 5], 12,  1200080426);
-		c = FF(c, d, a, b, m[i+ 6], 17, -1473231341);
-		b = FF(b, c, d, a, m[i+ 7], 22, -45705983);
-		a = FF(a, b, c, d, m[i+ 8],  7,  1770035416);
-		d = FF(d, a, b, c, m[i+ 9], 12, -1958414417);
-		c = FF(c, d, a, b, m[i+10], 17, -42063);
-		b = FF(b, c, d, a, m[i+11], 22, -1990404162);
-		a = FF(a, b, c, d, m[i+12],  7,  1804603682);
-		d = FF(d, a, b, c, m[i+13], 12, -40341101);
-		c = FF(c, d, a, b, m[i+14], 17, -1502002290);
-		b = FF(b, c, d, a, m[i+15], 22,  1236535329);
+            var nBitsTotal = this._nDataBytes * 8;
+            var nBitsLeft = data.sigBytes * 8;
 
-		a = GG(a, b, c, d, m[i+ 1],  5, -165796510);
-		d = GG(d, a, b, c, m[i+ 6],  9, -1069501632);
-		c = GG(c, d, a, b, m[i+11], 14,  643717713);
-		b = GG(b, c, d, a, m[i+ 0], 20, -373897302);
-		a = GG(a, b, c, d, m[i+ 5],  5, -701558691);
-		d = GG(d, a, b, c, m[i+10],  9,  38016083);
-		c = GG(c, d, a, b, m[i+15], 14, -660478335);
-		b = GG(b, c, d, a, m[i+ 4], 20, -405537848);
-		a = GG(a, b, c, d, m[i+ 9],  5,  568446438);
-		d = GG(d, a, b, c, m[i+14],  9, -1019803690);
-		c = GG(c, d, a, b, m[i+ 3], 14, -187363961);
-		b = GG(b, c, d, a, m[i+ 8], 20,  1163531501);
-		a = GG(a, b, c, d, m[i+13],  5, -1444681467);
-		d = GG(d, a, b, c, m[i+ 2],  9, -51403784);
-		c = GG(c, d, a, b, m[i+ 7], 14,  1735328473);
-		b = GG(b, c, d, a, m[i+12], 20, -1926607734);
+            // Add padding
+            dataWords[nBitsLeft >>> 5] |= 0x80 << (24 - nBitsLeft % 32);
+            dataWords[(((nBitsLeft + 64) >>> 9) << 4) + 14] = (
+                (((nBitsTotal << 8)  | (nBitsTotal >>> 24)) & 0x00ff00ff) |
+                (((nBitsTotal << 24) | (nBitsTotal >>> 8))  & 0xff00ff00)
+            );
+            data.sigBytes = (dataWords.length + 1) * 4;
 
-		a = HH(a, b, c, d, m[i+ 5],  4, -378558);
-		d = HH(d, a, b, c, m[i+ 8], 11, -2022574463);
-		c = HH(c, d, a, b, m[i+11], 16,  1839030562);
-		b = HH(b, c, d, a, m[i+14], 23, -35309556);
-		a = HH(a, b, c, d, m[i+ 1],  4, -1530992060);
-		d = HH(d, a, b, c, m[i+ 4], 11,  1272893353);
-		c = HH(c, d, a, b, m[i+ 7], 16, -155497632);
-		b = HH(b, c, d, a, m[i+10], 23, -1094730640);
-		a = HH(a, b, c, d, m[i+13],  4,  681279174);
-		d = HH(d, a, b, c, m[i+ 0], 11, -358537222);
-		c = HH(c, d, a, b, m[i+ 3], 16, -722521979);
-		b = HH(b, c, d, a, m[i+ 6], 23,  76029189);
-		a = HH(a, b, c, d, m[i+ 9],  4, -640364487);
-		d = HH(d, a, b, c, m[i+12], 11, -421815835);
-		c = HH(c, d, a, b, m[i+15], 16,  530742520);
-		b = HH(b, c, d, a, m[i+ 2], 23, -995338651);
+            // Hash final blocks
+            this._process();
 
-		a = II(a, b, c, d, m[i+ 0],  6, -198630844);
-		d = II(d, a, b, c, m[i+ 7], 10,  1126891415);
-		c = II(c, d, a, b, m[i+14], 15, -1416354905);
-		b = II(b, c, d, a, m[i+ 5], 21, -57434055);
-		a = II(a, b, c, d, m[i+12],  6,  1700485571);
-		d = II(d, a, b, c, m[i+ 3], 10, -1894986606);
-		c = II(c, d, a, b, m[i+10], 15, -1051523);
-		b = II(b, c, d, a, m[i+ 1], 21, -2054922799);
-		a = II(a, b, c, d, m[i+ 8],  6,  1873313359);
-		d = II(d, a, b, c, m[i+15], 10, -30611744);
-		c = II(c, d, a, b, m[i+ 6], 15, -1560198380);
-		b = II(b, c, d, a, m[i+13], 21,  1309151649);
-		a = II(a, b, c, d, m[i+ 4],  6, -145523070);
-		d = II(d, a, b, c, m[i+11], 10, -1120210379);
-		c = II(c, d, a, b, m[i+ 2], 15,  718787259);
-		b = II(b, c, d, a, m[i+ 9], 21, -343485551);
+            // Shortcut
+            var H = this._hash.words;
 
-		a = (a + aa) >>> 0;
-		b = (b + bb) >>> 0;
-		c = (c + cc) >>> 0;
-		d = (d + dd) >>> 0;
+            // Swap endian
+            for (var i = 0; i < 4; i++) {
+                // Shortcut
+                var H_i = H[i];
 
-	}
+                H[i] = (((H_i << 8)  | (H_i >>> 24)) & 0x00ff00ff) |
+                       (((H_i << 24) | (H_i >>> 8))  & 0xff00ff00);
+            }
+        }
+    });
 
-	return util.endian([a, b, c, d]);
+    function FF(a, b, c, d, x, s, t) {
+        var n = a + ((b & c) | (~b & d)) + x + t;
+        return ((n << s) | (n >>> (32 - s))) + b;
+    }
 
-};
+    function GG(a, b, c, d, x, s, t) {
+        var n = a + ((b & d) | (c & ~d)) + x + t;
+        return ((n << s) | (n >>> (32 - s))) + b;
+    }
 
-// Auxiliary functions
-MD5._ff  = function (a, b, c, d, x, s, t) {
-	var n = a + (b & c | ~b & d) + (x >>> 0) + t;
-	return ((n << s) | (n >>> (32 - s))) + b;
-};
-MD5._gg  = function (a, b, c, d, x, s, t) {
-	var n = a + (b & d | c & ~d) + (x >>> 0) + t;
-	return ((n << s) | (n >>> (32 - s))) + b;
-};
-MD5._hh  = function (a, b, c, d, x, s, t) {
-	var n = a + (b ^ c ^ d) + (x >>> 0) + t;
-	return ((n << s) | (n >>> (32 - s))) + b;
-};
-MD5._ii  = function (a, b, c, d, x, s, t) {
-	var n = a + (c ^ (b | ~d)) + (x >>> 0) + t;
-	return ((n << s) | (n >>> (32 - s))) + b;
-};
+    function HH(a, b, c, d, x, s, t) {
+        var n = a + (b ^ c ^ d) + x + t;
+        return ((n << s) | (n >>> (32 - s))) + b;
+    }
 
-// Package private blocksize
-MD5._blocksize = 16;
+    function II(a, b, c, d, x, s, t) {
+        var n = a + (c ^ (b | ~d)) + x + t;
+        return ((n << s) | (n >>> (32 - s))) + b;
+    }
 
-MD5._digestsize = 16;
+    /**
+     * Shortcut function to the hasher's object interface.
+     *
+     * @param {WordArray|string} message The message to hash.
+     *
+     * @return {WordArray} The hash.
+     *
+     * @static
+     *
+     * @example
+     *
+     *     var hash = CryptoJS.MD5('message');
+     *     var hash = CryptoJS.MD5(wordArray);
+     */
+    C.MD5 = Hasher._createHelper(MD5);
 
-})();
+    /**
+     * Shortcut function to the HMAC's object interface.
+     *
+     * @param {WordArray|string} message The message to hash.
+     * @param {WordArray|string} key The secret key.
+     *
+     * @return {WordArray} The HMAC.
+     *
+     * @static
+     *
+     * @example
+     *
+     *     var hmac = CryptoJS.HmacMD5(message, key);
+     */
+    C.HmacMD5 = Hasher._createHmacHelper(MD5);
+}(Math));
