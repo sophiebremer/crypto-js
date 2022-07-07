@@ -23,7 +23,7 @@
          */
         init: function (hasher, key) {
             // Init hasher
-            hasher = this._hasher = hasher.create();
+            hasher = this._hasher = new hasher.init();
 
             // Convert string to WordArray, else assume WordArray already
             if (typeof key == 'string') {
@@ -38,6 +38,9 @@
             if (key.sigBytes > hasherBlockSizeBytes) {
                 key = hasher.finalize(key);
             }
+
+            // Clamp excess bits
+            key.clamp();
 
             // Clone key for inner and outer pads
             var oKey = this._oKey = key.clone();
