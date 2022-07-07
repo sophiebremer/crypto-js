@@ -1,40 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<head>
-
-<!-- YUI CSS -->
-<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.7.0/build/logger/assets/logger.css">
-<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.7.0/build/yuitest/assets/testlogger.css">
-
-<!-- Customizations -->
-<link rel="stylesheet" type="text/css" href="lib/tester.css">
-
-<!-- YUI JS -->
-<script type="text/javascript" src="http://yui.yahooapis.com/2.7.0/build/yahoo-dom-event/yahoo-dom-event.js"></script>
-<script type="text/javascript" src="http://yui.yahooapis.com/2.7.0/build/logger/logger-min.js"></script>
-<script type="text/javascript" src="http://yui.yahooapis.com/2.7.0/build/yuitest/yuitest-min.js"></script>
-
-<!-- Test subject -->
-<script type="text/javascript" src="../src/Crypto.js"></script>
-<script type="text/javascript" src="../src/HMAC.js"></script>
-<script type="text/javascript" src="../src/SHA1.js"></script>
-<script type="text/javascript" src="../src/PBKDF2.js"></script>
-<script type="text/javascript" src="../src/OFB.js"></script>
-<script type="text/javascript" src="../src/CBC.js"></script>
-<script type="text/javascript" src="../src/AES.js"></script>
-
-<!-- Test cases -->
-<script type="text/javascript">
-
-// 1KB of random, dummy data
-var data = [];
-for (var i = 0; i < 1000; i++) data.push(String.fromCharCode(Math.floor(Math.random() * 256)));
-data = data.join("");
-
-// Shortcut
-var Assert = YAHOO.util.Assert;
-
-YAHOO.tool.TestRunner.add(
-new YAHOO.tool.TestCase({
+TestSuite.add(new YAHOO.tool.TestCase({
 
 	test_AES128: function () {
 
@@ -49,7 +13,7 @@ new YAHOO.tool.TestCase({
 		Assert.areEqual([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF].toString(), block.toString());
 
 		var key = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F";
-		Assert.areEqual(data, Crypto.AES.decrypt(Crypto.AES.encrypt(data, key, Crypto.mode.CBC), key, Crypto.mode.CBC));
+		Assert.areEqual(data, Crypto.AES.decrypt(Crypto.AES.encrypt(data, key, { mode: Crypto.mode.CBC }), key, { mode: Crypto.mode.CBC }));
 		Assert.areEqual(data, Crypto.AES.decrypt(Crypto.AES.encrypt(data, key), key));
 
 	},
@@ -93,24 +57,4 @@ new YAHOO.tool.TestCase({
 
 	}
 
-})
-);
-
-YAHOO.util.Event.onDOMReady(function(){
-
-	// Display results from the TestRunner
-	var logger = new YAHOO.tool.TestLogger();
-
-	// Hide info category
-	logger.hideCategory("info");
-
-	// Run all tests
-	YAHOO.tool.TestRunner.run();
-
-});
-
-</script>
-
-</head>
-<body>
-</body>
+}));

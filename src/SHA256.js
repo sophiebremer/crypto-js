@@ -26,7 +26,7 @@ var K = [ 0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5,
           0x90BEFFFA, 0xA4506CEB, 0xBEF9A3F7, 0xC67178F2 ];
 
 // Public API
-var SHA256 = Crypto.SHA256 = function (message, options) {
+var SHA256 = C.SHA256 = function (message, options) {
 	var digestbytes = util.wordsToBytes(SHA256._sha256(message));
 	return options && options.asBytes ? digestbytes :
 	       options && options.asString ? Binary.bytesToString(digestbytes) :
@@ -40,11 +40,11 @@ SHA256._sha256 = function (message) {
 	if (message.constructor == String) message = UTF8.stringToBytes(message);
 	/* else, assume byte array already */
 
-	var m  = util.bytesToWords(message),
-	    l  = message.length * 8,
+	var m = util.bytesToWords(message),
+	    l = message.length * 8,
 	    H = [ 0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
 	          0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19 ],
-	    w  = [],
+	    w = [],
 	    a, b, c, d, e, f, g, h, i, j,
 	    t1, t2;
 

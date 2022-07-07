@@ -7,7 +7,7 @@ var C = Crypto,
     UTF8 = charenc.UTF8,
     Binary = charenc.Binary;
 
-var MARC4 = Crypto.MARC4 = {
+var MARC4 = C.MARC4 = {
 
 	/**
 	 * Public API
@@ -26,7 +26,7 @@ var MARC4 = Crypto.MARC4 = {
 		    // Generate key
 		    k = password.constructor == String ?
 		        // Derive key from passphrase
-		        Crypto.PBKDF2(password, Binary.bytesToString(iv), 32, { asBytes: true }) :
+		        C.PBKDF2(password, iv, 32, { asBytes: true }) :
 		        // else, assume byte array representing cryptographic key
 		        password;
 
@@ -51,7 +51,7 @@ var MARC4 = Crypto.MARC4 = {
 		    // Generate key
 		    k = password.constructor == String ?
 		        // Derive key from passphrase
-		        Crypto.PBKDF2(password, Binary.bytesToString(iv), 32, { asBytes: true }) :
+		        C.PBKDF2(password, iv, 32, { asBytes: true }) :
 		        // else, assume byte array representing cryptographic key
 		        password;
 
@@ -91,7 +91,7 @@ var MARC4 = Crypto.MARC4 = {
 		i = j = 0;
 
 		// Encryption
-		for (var k = 0 - drop; k < m.length; k++) {
+		for (var k = -drop; k < m.length; k++) {
 
 			i = (i + 1) % 256;
 			j = (j + s[i]) % 256;

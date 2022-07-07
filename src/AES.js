@@ -81,13 +81,13 @@ var state = [[], [], [], []],
     nrounds,
     keyschedule;
 
-var AES = Crypto.AES = {
+var AES = C.AES = {
 
 	/**
 	 * Public API
 	 */
 
-	encrypt: function (message, password, mode) {
+	encrypt: function (message, password, options) {
 
 		var
 
@@ -100,12 +100,12 @@ var AES = Crypto.AES = {
 		    // Generate key
 		    k = password.constructor == String ?
 		        // Derive key from passphrase
-		        Crypto.PBKDF2(password, Binary.bytesToString(iv), 32, { asBytes: true }) :
+		        C.PBKDF2(password, iv, 32, { asBytes: true }) :
 		        // else, assume byte array representing cryptographic key
 		        password;
 
 		// Determine mode
-		mode = mode || Crypto.mode.OFB;
+		mode = options && options.mode || C.mode.OFB;
 
 		// Encrypt
 		AES._init(k);
@@ -116,7 +116,7 @@ var AES = Crypto.AES = {
 
 	},
 
-	decrypt: function (ciphertext, password, mode) {
+	decrypt: function (ciphertext, password, options) {
 
 		var
 
@@ -129,12 +129,12 @@ var AES = Crypto.AES = {
 		    // Generate key
 		    k = password.constructor == String ?
 		        // Derive key from passphrase
-		        Crypto.PBKDF2(password, Binary.bytesToString(iv), 32, { asBytes: true }) :
+		        C.PBKDF2(password, iv, 32, { asBytes: true }) :
 		        // else, assume byte array representing cryptographic key
 		        password;
 
 		// Determine mode
-		mode = mode || Crypto.mode.OFB;
+		mode = options && options.mode || C.mode.OFB;
 
 		// Decrypt
 		AES._init(k);
