@@ -15,23 +15,11 @@
 
 <!-- Test subject -->
 <script type="text/javascript" src="../src/Crypto.js"></script>
+<script type="text/javascript" src="../src/MD5.js"></script>
 <script type="text/javascript" src="../src/HMAC.js"></script>
-<script type="text/javascript" src="../src/SHA1.js"></script>
-<script type="text/javascript" src="../src/PBKDF2.js"></script>
-<script type="text/javascript" src="../src/MARC4.js"></script>
 
 <!-- Test cases -->
 <script type="text/javascript">
-
-// 1KB of random, dummy data
-var data = [];
-for (var i = 0; i < 1000; i++) data.push(String.fromCharCode(Math.floor(Math.random() * 256)));
-data = data.join("");
-
-// Random key of random length
-var key = [], kLen = Math.floor(Math.random() * 256);
-for (var i = 0; i < kLen; i++) key.push(String.fromCharCode(Math.floor(Math.random() * 256)));
-key = key.join("");
 
 // Shortcut
 var Assert = YAHOO.util.Assert;
@@ -39,18 +27,10 @@ var Assert = YAHOO.util.Assert;
 YAHOO.tool.TestRunner.add(
 new YAHOO.tool.TestCase({
 
-	test_MARC4: function () {
-
-		// Test vectors
-		Crypto.MARC4._marc4(message = [0,0,0,0,0,0,0,0], [0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF], 0)
-		Assert.areEqual([0x74, 0x94, 0xC2, 0xE7, 0x10, 0x4B, 0x08, 0x79].toString(), message.toString());
-
-		Crypto.MARC4._marc4(message = [0xDC, 0xEE, 0x4C, 0xF9, 0x2C], [0x61, 0x8A, 0x63, 0xD2, 0xFB], 0)
-		Assert.areEqual([0xF1, 0x38, 0x29, 0xC9, 0xDE].toString(), message.toString());
-
-		// Test D(E(m)) == m
-		Assert.areEqual(data, Crypto.MARC4.decrypt(Crypto.MARC4.encrypt(data, key), key));
-
+	test_HMAC: function () {
+		Assert.areEqual("\x92\x94\x72\x7a\x36\x38\xbb\x1c\x13\xf4\x8e\xf8\x15\x8b\xfc\x9d", Crypto.HMAC(Crypto.MD5, "\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b", "Hi There"));
+		Assert.areEqual("\x75\x0c\x78\x3e\x6a\xb0\xb5\x03\xea\xa8\x6e\x31\x0a\x5d\xb7\x38", Crypto.HMAC(Crypto.MD5, "Jefe", "what do ya want for nothing?"));
+		Assert.areEqual("\x56\xbe\x34\x52\x1d\x14\x4c\x88\xdb\xb8\xc7\x33\xf0\xe8\xb3\xf6", Crypto.HMAC(Crypto.MD5, "\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA", "\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD\xDD"));
 	}
 
 })

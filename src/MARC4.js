@@ -9,17 +9,18 @@ var MARC4 = Crypto.MARC4 = {
 	 * Public API
 	 */
 
-	encrypt: function (message, key) {
+	encrypt: function (message, password) {
 
-		// Convert to bytes
-		var m = util.stringToBytes(message),
-		    k = util.stringToBytes(key);
+		var
 
-		// Generate random IV
-		var iv = util.randomBytes(16);
+		    // Convert to bytes
+		    m = util.stringToBytes(message),
 
-		// Attach IV to key
-		k = k.concat(iv);
+		    // Generate random IV
+		    iv = util.randomBytes(16),
+
+		    // Generate key
+		    k = Crypto.PBKDF2(password, iv, 32, { asBytes: true });
 
 		// Encrypt
 		MARC4._marc4(m, k, 1536);
@@ -29,17 +30,18 @@ var MARC4 = Crypto.MARC4 = {
 
 	},
 
-	decrypt: function (ciphertext, key) {
+	decrypt: function (ciphertext, password) {
 
-		// Convert to bytes
-		var c = util.base64ToBytes(ciphertext),
-		    k = util.stringToBytes(key);
+		var
 
-		// Separate IV and message
-		var iv = c.splice(0, 16);
+		    // Convert to bytes
+		    c = util.base64ToBytes(ciphertext),
 
-		// Attach IV to key
-		k = k.concat(iv);
+		    // Separate IV and message
+		    iv = c.splice(0, 16),
+
+		    // Generate key
+		    k = Crypto.PBKDF2(password, iv, 32, { asBytes: true });
 
 		// Decrypt
 		MARC4._marc4(c, k, 1536);

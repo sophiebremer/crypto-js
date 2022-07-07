@@ -14,14 +14,18 @@ var Rabbit = Crypto.Rabbit = {
 	 * Public API
 	 */
 
-	encrypt: function (message, key) {
+	encrypt: function (message, password) {
 
-		// Convert to bytes and words
-		var m = util.stringToBytes(message),
-		    k = util.endian(util.stringToWords(key));
+		var
 
-		// Generate random IV
-		var iv = util.bytesToWords(util.randomBytes(8));
+		    // Convert to bytes
+		    m = util.stringToBytes(message),
+
+		    // Generate random IV
+		    iv = util.bytesToWords(util.randomBytes(8)),
+
+		    // Generate key
+		    k = Crypto.PBKDF2(password, iv, 16, { asBytes: true });
 
 		// Encrypt
 		Rabbit._rabbit(m, k, iv);
@@ -31,14 +35,18 @@ var Rabbit = Crypto.Rabbit = {
 
 	},
 
-	decrypt: function (ciphertext, key) {
+	decrypt: function (ciphertext, password) {
 
-		// Convert to bytes and words
-		var c = util.base64ToBytes(ciphertext),
-		    k = util.endian(util.stringToWords(key));
+		var
 
-		// Separate IV and message
-		var iv = util.bytesToWords(c.splice(0, 8));
+		    // Convert to bytes
+		    c = util.base64ToBytes(ciphertext),
+
+		    // Separate IV and message
+		    iv = util.bytesToWords(c.splice(0, 8)),
+
+		    // Generate key
+		    k = Crypto.PBKDF2(password, iv, 16, { asBytes: true });
 
 		// Decrypt
 		Rabbit._rabbit(c, k, iv);

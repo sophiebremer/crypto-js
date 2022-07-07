@@ -83,14 +83,18 @@ var AES = Crypto.AES = {
 	 * Public API
 	 */
 
-	encrypt: function (message, key, mode) {
+	encrypt: function (message, password, mode) {
 
-		// Convert to byte arrays
-		var m = util.stringToBytes(message),
-		    k = util.stringToBytes(key);
+		var
 
-		// Generate random IV
-		var iv = util.randomBytes(AES._blocksize * 4);
+		    // Convert to bytes
+		    m = util.stringToBytes(message),
+
+		    // Generate random IV
+		    iv = util.randomBytes(AES._blocksize * 4),
+
+		    // Generate key
+		    k = Crypto.PBKDF2(password, iv, 32, { asBytes: true });
 
 		// Determine mode
 		mode = mode || Crypto.mode.OFB;
@@ -104,14 +108,18 @@ var AES = Crypto.AES = {
 
 	},
 
-	decrypt: function (ciphertext, key, mode) {
+	decrypt: function (ciphertext, password, mode) {
 
-		// Convert to byte arrays
-		var c = util.base64ToBytes(ciphertext),
-		    k = util.stringToBytes(key);
+		var
 
-		// Separate IV and message
-		var iv = c.splice(0, AES._blocksize * 4);
+		    // Convert to bytes
+		    c = util.base64ToBytes(ciphertext),
+
+		    // Separate IV and message
+		    iv = c.splice(0, AES._blocksize * 4),
+
+		    // Generate key
+		    k = Crypto.PBKDF2(password, iv, 32, { asBytes: true });
 
 		// Determine mode
 		mode = mode || Crypto.mode.OFB;

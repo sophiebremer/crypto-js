@@ -69,4 +69,7 @@ SHA1._sha1 = function (message) {
 
 };
 
+// Package private blocksize
+SHA1._blocksize = 16;
+
 })();
