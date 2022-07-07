@@ -1,7 +1,7 @@
 <?php
 
 $copyrightInfo = '/*!
- * Crypto-JS v2.1.0
+ * Crypto-JS v2.2.0
  * http://code.google.com/p/crypto-js/
  * Copyright (c) 2011, Jeff Mott. All rights reserved.
  * http://code.google.com/p/crypto-js/wiki/License
@@ -9,7 +9,7 @@ $copyrightInfo = '/*!
 ';
 
 $files = array('crypto', 'md5', 'sha1', 'sha256', 'hmac', 'pbkdf2', 'pbkdf2async',
-               'marc4', 'rabbit', 'aes', 'cbc', 'ofb');
+               'marc4', 'rabbit', 'aes', 'cbc', 'cbc-nopad', 'ofb');
 $rollups = array(
 	array('crypto', 'md5'),
 	array('crypto', 'sha1'),

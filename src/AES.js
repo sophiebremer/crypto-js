@@ -89,13 +89,15 @@ var AES = C.AES = {
 
 	encrypt: function (message, password, options) {
 
+		options = options || {};
+
 		var
 
 			// Convert to bytes
 			m = UTF8.stringToBytes(message),
 
 			// Generate random IV
-			iv = util.randomBytes(AES._blocksize * 4),
+			iv = options.iv || util.randomBytes(AES._blocksize * 4),
 
 			// Generate key
 			k = (
@@ -107,18 +109,20 @@ var AES = C.AES = {
 			),
 
 			// Determine mode
-			mode = options && options.mode || C.mode.OFB;
+			mode = options.mode || C.mode.OFB;
 
 		// Encrypt
 		AES._init(k);
 		mode.encrypt(AES, m, iv);
 
 		// Return ciphertext
-		return util.bytesToBase64(iv.concat(m));
+		return util.bytesToBase64(options.iv ? m : iv.concat(m));
 
 	},
 
 	decrypt: function (ciphertext, password, options) {
+
+		options = options || {};
 
 		var
 
@@ -126,7 +130,7 @@ var AES = C.AES = {
 			c = util.base64ToBytes(ciphertext),
 
 			// Separate IV and message
-			iv = c.splice(0, AES._blocksize * 4),
+			iv = options.iv || c.splice(0, AES._blocksize * 4),
 
 			// Generate key
 			k = (
@@ -138,7 +142,7 @@ var AES = C.AES = {
 			),
 
 			// Determine mode
-			mode = options && options.mode || C.mode.OFB;
+			mode = options.mode || C.mode.OFB;
 
 		// Decrypt
 		AES._init(k);
